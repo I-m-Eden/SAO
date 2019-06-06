@@ -16,6 +16,7 @@
 //#define DEBUGGING
 
 #define _WIN32_WINNT _WIN32_WINNT_MAXVER
+
 #include "head.h"
 #include "vector2.h"
 #include "datastruct.h"
@@ -40,7 +41,17 @@ void flushmouse() { while (GetAsyncKeyState(VK_LBUTTON) & 0x8000)delay(1); while
 void flushkey() { FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE)); }
 
 namespace showtitle {
+	string titlename = "Sword Art Offline";
 	void Main() {
+		clearscreen(WHITE234);
+		textbox t1;
+		t1.setbox(0, 0, _winw, _winh);
+		t1.setstyle(CYANDARK, 60, 0, "黑体", lgcenterhorizontal | lgcentervertical);
+		t1.resethighlight();
+		t1.text = titlename.c_str();
+		t1.paint();
+		flushpaint();
+		delay(1000);
 	}
 }
 
@@ -60,6 +71,7 @@ int WINAPI WinMain(
 	showwin(nCmdshow);
 
 	srand((UINT)time(0));
+
 	Main();
 
 	closewin(hwnd);
