@@ -54,7 +54,7 @@ public:
 		HDC hdc = _hDCMem;
 		HFONT hfont = CreateFont(fh, fw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, flpf);
 		SetTextColor(hdc, textcolor);
-		SelectObject(hdc, hfont);
+		HANDLE holdfont = SelectObject(hdc, hfont);
 		GetCharABCWidths(hdc, 0, 127, arrABC);
 		int X = x1, Y = y1;
 		BYTE lx = layoutgravity & 3, ly = layoutgravity >> 2 << 2;
@@ -75,12 +75,15 @@ public:
 		tx1 = X; ty1 = Y; tx2 = X + width; ty2 = Y + height;
 		if (ifhighlight) {
 			HBRUSH hbrush = CreateSolidBrush(highlightcolor);
-			SelectObject(hdc, hbrush);
-			SelectObject(hdc, hnullpen);
+			HANDLE holdbrush = SelectObject(hdc, hbrush);
+			HANDLE holdpen = SelectObject(hdc, hnullpen);
 			Rectangle(hdc, tx1 - 2, ty1, tx2 + 2, ty2);
+			SelectObject(hdc, holdbrush);
+			SelectObject(hdc, holdpen);
 			DeleteObject(hbrush);
 		}
 		TextOut(hdc, X, Y, text, (int)strlen(text));
+		SelectObject(hdc, holdfont);
 		DeleteObject(hfont);
 	}
 	void clear(COLORREF bc) {
@@ -239,14 +242,16 @@ public:
 		}
 		HDC hdc = _hDCMem;
 		HBRUSH hbrush = CreateSolidBrush(buttoncolor[id]);
-		SelectObject(hdc, hbrush);
-		SelectObject(hdc, hnullpen);
+		HANDLE holdbrush = SelectObject(hdc, hbrush);
+		HANDLE holdpen = SelectObject(hdc, hnullpen);
 		Rectangle(hdc, x1, y1, x2, y2);
+		SelectObject(hdc, holdbrush);
+		SelectObject(hdc, holdpen);
 		DeleteObject(hbrush);
 		if (text == NULL)return;
 		HFONT hfont = CreateFont(fh, fw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, flpf);
 		SetTextColor(hdc, textcolor[id]);
-		SelectObject(hdc, hfont);
+		HANDLE holdfont = SelectObject(hdc, hfont);
 		GetCharABCWidths(hdc, 0, 127, arrABC);
 		int X = x1, Y = y1;
 		int width = 0;
@@ -258,6 +263,7 @@ public:
 		X = (x1 + x2 - width) / 2;
 		Y = (y1 + y2 - height) / 2;
 		TextOut(hdc, X, Y, text, (int)strlen(text));
+		SelectObject(hdc, holdfont);
 		DeleteObject(hfont);
 	}
 	void listen() {

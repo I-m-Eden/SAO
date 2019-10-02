@@ -121,7 +121,6 @@
     <ClInclude Include="coloresource.h" />
     <ClInclude Include="datastruct.h" />
     <ClInclude Include="head.h" />
-    <ClInclude Include="imageresource.h" />
     <ClInclude Include="processresource.h" />
     <ClInclude Include="toolibrary.h" />
     <ClInclude Include="vector2.h" />
@@ -129,6 +128,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

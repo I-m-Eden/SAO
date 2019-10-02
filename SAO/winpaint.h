@@ -8,6 +8,7 @@ by Eden 2018
 #include <iostream>
 #include <Vfw.h>
 #include <cmath>
+#include <queue>
 using namespace std;
 #define rgb RGB
 #define delay Sleep				//delay(x) 延迟x毫秒 
@@ -52,11 +53,9 @@ HINSTANCE _hinst;				//窗口实例句柄
 LPCSTR _title;					//窗口标题
 
 								//消息变量
-const int _msqmax = 10000;
 MSG _ms = { 0 };				//当前消息
-MSG _msq[_msqmax];				//消息队列
-MSG _msbuf[_msqmax];			//peekmsg后得到的消息组
-int _msh = 1, _mst = 1, _msbufn = 0;
+queue<MSG> _msq;				//消息队列
+vector<MSG> _msbuf;				//peekmsg后得到的消息组
 
 //位图变量
 HDC _hdc;						//设备描述表句柄
@@ -184,8 +183,8 @@ void parc(int x1, int y1, int x2, int y2, int xx1, int yy1, int xx2, int yy2);
 //画弧
 void pbezier(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
 //画贝赛尔曲线
-void clearscreen(int c, int x1, int y1, int x2, int y2);//清除屏幕一块区域
-void clearscreen(int c);								//清屏
+void clearscreen(COLORREF c, int x1, int y1, int x2, int y2);//清除屏幕一块区域
+void clearscreen(COLORREF c);								//清屏
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wparam, LPARAM lparam) {
 	switch (uMsg) {
@@ -233,8 +232,7 @@ DWORD WINAPI _initwin(LPVOID lpParam) {
 		MSG msg = { 0 };
 		GetMessage(&msg, hwnd, 0, 0);
 		sendmsg(&msg);
-		_msq[_mst] = msg;
-		_mst++; if (_mst >= _msqmax)_mst = 0;
+		_msq.push(msg);
 	}
 	return 0;
 }
@@ -260,12 +258,11 @@ void showwin(int nCmdshow) { ShowWindow(hwnd, nCmdshow); UpdateWindow(hwnd); }
 bool checkprev(LPCSTR wname) { if (FindWindow("DefaultClassName", wname)) { MessageBox(NULL, "应用程序已在运行", "注意", MB_OK); return 1; } else return 0; }
 void sendmsg(LPMSG lpms) { TranslateMessage(lpms); DispatchMessage(lpms); }
 bool peekmsg() {
-	_msbufn = 0;
-	if (_msh != _mst) {
-		while (1) {
-			_msbuf[++_msbufn] = _ms = _msq[_msh];
-			_msh++; if (_msh >= _msqmax)_msh = 0;
-			if ((_mst - _msh + _msqmax) % _msqmax <= 10)break;
+	_msbuf.clear();
+	if (!_msq.empty()) {
+		while (!_msq.empty()) {
+			_msbuf.push_back(_ms = _msq.front());
+			_msq.pop();
 		}
 		return 1;
 	}
@@ -275,44 +272,43 @@ bool iswndactive() {
 	return GetForegroundWindow() == hwnd;
 }
 bool iskeydown() {
-	for (int i = 1; i <= _msbufn; ++i)if (_msbuf[i].message == WM_KEYDOWN)return 1;
+	for (int i = 0; i < _msbuf.size(); ++i)if (_msbuf[i].message == WM_KEYDOWN)return 1;
 	return 0;
 }
 bool iskeydown(int x) {
-	for (int i = 1; i <= _msbufn; ++i)if (_msbuf[i].message == WM_KEYDOWN && _msbuf[i].wParam == x)return 1;
+	for (int i = 0; i < _msbuf.size(); ++i)if (_msbuf[i].message == WM_KEYDOWN && _msbuf[i].wParam == x)return 1;
 	return 0;
 }
 WPARAM getkeydown() {
-	for (int i = 1; i <= _msbufn; ++i)if (_msbuf[i].message == WM_KEYDOWN)return _msbuf[i].wParam;
+	for (int i = 0; i < _msbuf.size(); ++i)if (_msbuf[i].message == WM_KEYDOWN)return _msbuf[i].wParam;
 	return 0;
 }
 bool islbuttondown() {
-	for (int i = 1; i <= _msbufn; ++i)if (_msbuf[i].message == WM_LBUTTONDOWN)return 1;
+	for (int i = 0; i < _msbuf.size(); ++i)if (_msbuf[i].message == WM_LBUTTONDOWN)return 1;
 	return 0;
 }
 bool islbuttonup() {
-
-	for (int i = 1; i <= _msbufn; ++i)if (_msbuf[i].message == WM_LBUTTONUP)return 1;
+	for (int i = 0; i < _msbuf.size(); ++i)if (_msbuf[i].message == WM_LBUTTONUP)return 1;
 	return 0;
 }
 bool isrbuttondown() {
-	for (int i = 1; i <= _msbufn; ++i)if (_msbuf[i].message == WM_RBUTTONDOWN)return 1;
+	for (int i = 0; i < _msbuf.size(); ++i)if (_msbuf[i].message == WM_RBUTTONDOWN)return 1;
 	return 0;
 }
 bool isrbuttonup() {
-	for (int i = 1; i <= _msbufn; ++i)if (_msbuf[i].message == WM_RBUTTONUP)return 1;
+	for (int i = 0; i < _msbuf.size(); ++i)if (_msbuf[i].message == WM_RBUTTONUP)return 1;
 	return 0;
 }
 bool iswheelrollup() {
-	for (int i = 1; i <= _msbufn; ++i)if (_msbuf[i].message == WM_MOUSEWHEEL && (HIWORD(_msbuf[i].wParam) == 120))return 1;
+	for (int i = 0; i < _msbuf.size(); ++i)if (_msbuf[i].message == WM_MOUSEWHEEL && (HIWORD(_msbuf[i].wParam) == 120))return 1;
 	return 0;
 }
 bool iswheelrolldown() {
-	for (int i = 1; i <= _msbufn; ++i)if (_msbuf[i].message == WM_MOUSEWHEEL && (HIWORD(_msbuf[i].wParam) == (WORD)-120))return 1;
+	for (int i = 0; i < _msbuf.size(); ++i)if (_msbuf[i].message == WM_MOUSEWHEEL && (HIWORD(_msbuf[i].wParam) == (WORD)-120))return 1;
 	return 0;
 }
 bool ismousemove() {
-	for (int i = 1; i <= _msbufn; ++i)if (_msbuf[i].message == WM_MOUSEMOVE)return 1;
+	for (int i = 0; i < _msbuf.size(); ++i)if (_msbuf[i].message == WM_MOUSEMOVE)return 1;
 	return 0;
 }
 int getborderw() { return GetSystemMetrics(SM_CXFRAME); }
@@ -431,84 +427,79 @@ COLORREF hsl2rgb(double h, double s, double l) {
 }
 void pline(int x1, int y1, int x2, int y2) { MoveToEx(_hDCMem, x1, y1, NULL); LineTo(_hDCMem, x2, y2); }
 void setd(int pstyle, int pwidth, COLORREF pc) {
-	DeleteObject(_dpen);
 	_dpen = CreatePen(pstyle, pwidth, pc);
-	SelectObject(_hDCMem, _dpen);
+	DeleteObject(SelectObject(_hDCMem, _dpen));
 }
 void setf(COLORREF bc) {
-	DeleteObject(_fbrush);
 	_fbrush = CreateSolidBrush(bc);
-	SelectObject(_hDCMem, _fbrush);
+	DeleteObject(SelectObject(_hDCMem, _fbrush));
 }
 void setf(int bstyle, COLORREF bc) {
-	DeleteObject(_fbrush);
 	if (bstyle == -1) _fbrush = CreateSolidBrush(bc);
 	else _fbrush = CreateHatchBrush(bstyle, bc);
-	SelectObject(_hDCMem, _fbrush);
+	DeleteObject(SelectObject(_hDCMem, _fbrush));
 }
 void setf(HBITMAP hbm) {
-	DeleteObject(_fbrush);
 	_fbrush = CreatePatternBrush(hbm);
-	SelectObject(_hDCMem, _fbrush);
+	DeleteObject(SelectObject(_hDCMem, _fbrush));
 }
 void sett(COLORREF tc, int h, int w, LPCSTR lpf) {
 	SetTextColor(_hDCMem, _tc = tc);
-	DeleteObject(_tfont);
-	HFONT hfont = CreateFont(h, w, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, lpf);
-	SelectObject(_hDCMem, _tfont = hfont);
+	_tfont = CreateFont(h, w, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, lpf);
+	DeleteObject(SelectObject(_hDCMem, _tfont));
 }
 void dbar(int x1, int y1, int x2, int y2) {
-	SelectObject(_hDCMem, hnullbrush);
+	_fbrush=(HBRUSH)SelectObject(_hDCMem, hnullbrush);
 	Rectangle(_hDCMem, x1, y1, x2, y2);
 	SelectObject(_hDCMem, _fbrush);
 }
 void fbar(int x1, int y1, int x2, int y2) {
-	SelectObject(_hDCMem, hnullpen);
+	_dpen = (HPEN)SelectObject(_hDCMem, hnullpen);
 	Rectangle(_hDCMem, x1, y1, x2, y2);
 	SelectObject(_hDCMem, _dpen);
 }
 void pbar(int x1, int y1, int x2, int y2) { Rectangle(_hDCMem, x1, y1, x2, y2); }
-void clearscreen(int c, int x1, int y1, int x2, int y2) {
+void clearscreen(COLORREF c, int x1, int y1, int x2, int y2) {
 	HBRUSH hbrush = CreateSolidBrush(c);
-	SelectObject(_hDCMem, hbrush);
-	SelectObject(_hDCMem, hnullpen);
+	_fbrush = (HBRUSH)SelectObject(_hDCMem, hbrush);
+	_dpen = (HPEN)SelectObject(_hDCMem, hnullpen);
 	Rectangle(_hDCMem, x1, y1, x2, y2);
 	SelectObject(_hDCMem, _fbrush);
 	SelectObject(_hDCMem, _dpen);
 	DeleteObject(hbrush);
 }
-void clearscreen(int c) {
+void clearscreen(COLORREF c) {
 	clearscreen(c, 0, 0, _winw + 1, _winh + 1);
 }
 void dcircle(int x, int y, int r) {
-	SelectObject(_hDCMem, hnullbrush);
+	_fbrush = (HBRUSH)SelectObject(_hDCMem, hnullbrush);
 	Ellipse(_hDCMem, x - r, y - r, x + r, y + r);
 	SelectObject(_hDCMem, _fbrush);
 }
 void fcircle(int x, int y, int r) {
-	SelectObject(_hDCMem, hnullpen);
+	_dpen = (HPEN)SelectObject(_hDCMem, hnullpen);
 	Ellipse(_hDCMem, x - r, y - r, x + r, y + r);
 	SelectObject(_hDCMem, _dpen);
 }
 void pcircle(int x, int y, int r) { Ellipse(_hDCMem, x - r, y - r, x + r, y + r); }
 void dellipse(int x1, int y1, int x2, int y2) {
-	SelectObject(_hDCMem, hnullbrush);
+	_fbrush = (HBRUSH)SelectObject(_hDCMem, hnullbrush);
 	Ellipse(_hDCMem, x1, y1, x2, y2);
 	SelectObject(_hDCMem, _fbrush);
 }
 void fellipse(int x1, int y1, int x2, int y2) {
-	SelectObject(_hDCMem, hnullpen);
+	_dpen = (HPEN)SelectObject(_hDCMem, hnullpen);
 	Ellipse(_hDCMem, x1, y1, x2, y2);
 	SelectObject(_hDCMem, _dpen);
 }
 void pellipse(int x1, int y1, int x2, int y2) { Ellipse(_hDCMem, x1, y1, x2, y2); }
 void dpolygon(const POINT* apt, int cpt) {
-	SelectObject(_hDCMem, hnullbrush);
+	_fbrush = (HBRUSH)SelectObject(_hDCMem, hnullbrush);
 	Polygon(_hDCMem, apt, cpt);
 	SelectObject(_hDCMem, _fbrush);
 }
 void fpolygon(const POINT* apt, int cpt) {
-	SelectObject(_hDCMem, hnullpen);
+	_dpen = (HPEN)SelectObject(_hDCMem, hnullpen);
 	Polygon(_hDCMem, apt, cpt);
 	SelectObject(_hDCMem, _dpen);
 }
@@ -517,12 +508,12 @@ void parc(int x1, int y1, int x2, int y2, int xx1, int yy1, int xx2, int yy2) {
 	Arc(_hDCMem, x1, y1, x2, y2, xx1, yy1, xx2, yy2);
 }
 void dchord(int x1, int y1, int x2, int y2, int xx1, int yy1, int xx2, int yy2) {
-	SelectObject(_hDCMem, hnullbrush);
+	_fbrush = (HBRUSH)SelectObject(_hDCMem, hnullbrush);
 	Chord(_hDCMem, x1, y1, x2, y2, xx1, yy1, xx2, yy2);
 	SelectObject(_hDCMem, _fbrush);
 }
 void fchord(int x1, int y1, int x2, int y2, int xx1, int yy1, int xx2, int yy2) {
-	SelectObject(_hDCMem, hnullpen);
+	_dpen = (HPEN)SelectObject(_hDCMem, hnullpen);
 	Chord(_hDCMem, x1, y1, x2, y2, xx1, yy1, xx2, yy2);
 	SelectObject(_hDCMem, _dpen);
 }
@@ -530,12 +521,12 @@ void pchord(int x1, int y1, int x2, int y2, int xx1, int yy1, int xx2, int yy2) 
 	Chord(_hDCMem, x1, y1, x2, y2, xx1, yy1, xx2, yy2);
 }
 void dpie(int x1, int y1, int x2, int y2, int xx1, int yy1, int xx2, int yy2) {
-	SelectObject(_hDCMem, hnullbrush);
+	_fbrush = (HBRUSH)SelectObject(_hDCMem, hnullbrush);
 	Pie(_hDCMem, x1, y1, x2, y2, xx1, yy1, xx2, yy2);
 	SelectObject(_hDCMem, _fbrush);
 }
 void fpie(int x1, int y1, int x2, int y2, int xx1, int yy1, int xx2, int yy2) {
-	SelectObject(_hDCMem, hnullpen);
+	_dpen = (HPEN)SelectObject(_hDCMem, hnullpen);
 	Pie(_hDCMem, x1, y1, x2, y2, xx1, yy1, xx2, yy2);
 	SelectObject(_hDCMem, _dpen);
 }
@@ -543,12 +534,12 @@ void ppie(int x1, int y1, int x2, int y2, int xx1, int yy1, int xx2, int yy2) {
 	Pie(_hDCMem, x1, y1, x2, y2, xx1, yy1, xx2, yy2);
 }
 void droundbar(int x1, int y1, int x2, int y2, int w, int h) {
-	SelectObject(_hDCMem, hnullbrush);
+	_fbrush = (HBRUSH)SelectObject(_hDCMem, hnullbrush);
 	RoundRect(_hDCMem, x1, y1, x2, y2, w, h);
 	SelectObject(_hDCMem, _fbrush);
 }
 void froundbar(int x1, int y1, int x2, int y2, int w, int h) {
-	SelectObject(_hDCMem, hnullpen);
+	_dpen = (HPEN)SelectObject(_hDCMem, hnullpen);
 	RoundRect(_hDCMem, x1, y1, x2, y2, w, h);
 	SelectObject(_hDCMem, _dpen);
 }
